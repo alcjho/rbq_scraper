@@ -3,8 +3,11 @@ const config = require('./config');
 const dbconfig = require('./dbconfig');
 var mysql = require('mysql2/promise');
 const { forEach, find } = require('lodash');
+const sendmail = require('sendmail');
 
-verifyRBQ = async (url, rbq_number) =>{
+const pool = mysql.createPool(dbconfig.srv5);
+
+const verifyRBQ = async (url, rbq_number, rbq_exp) =>{
 
     // 1- Load the first url and jquery librairy
     const browser = await puppeteer.launch({headless: true});
@@ -48,27 +51,105 @@ verifyRBQ = async (url, rbq_number) =>{
         if(result !== undefined){
             switch(result){
             case 0:
-                return {'error': {'type':'nomatch', 'message':'The rbq number : ' + rbq + ' was not found in our database'}};
+                // update failure in database
+                await updateRBQ(rbq, false);
+                // send email to admin for unverified
+                await notifyUnverifiedRbqToAdmin(rbq, rbq_exp);
+                // Log result
+                return {"error": "The rbq number : " + rbq + " was not found in our database"};
             case 1:
-                return {'success':'rbq number : ' + rbq + ' has been found!'};
+                // update success in database
+                await updateRBQ(rbq, true);
+                // Log result
+                return {"success":"rbq number : " + rbq + " has been found!"};
             default:
-                return {'error': {'type':'unknown', 'message':"unknown error while verifying rbq number : " + rbq + " Try again later"}};
+                return {"error":"unknown error while verifying rbq number : " + rbq + " Try again later"};
             }
         }
     }else{
-        return {'error':'RBQ number cannot be empty'};
+        return {"error":"RBQ number cannot be empty"};
     }
 }
 
-module.exports.startRbqBatch = async (limit) => {
+
+/**
+ * 
+ * @param {*} rbq 
+ * @desc updateRBQ function : used to put a flag on rbq that has been updated
+ */
+const updateRBQ = async function(rbq, verified){
+
+    
+    const update_query = "UPDATE sr_contractor SET auto_check_RBQ_date = ?, rbq_verified = 'yes' WHERE replace(rbq, '-', '')+0 = ?";
+    
+    if(!verified){
+        const update_query = "UPDATE sr_contractor SET auto_check_RBQ_date = ?, rbq_verified = 'no' WHERE replace(rbq, '-', '')+0 = ?";
+    }
+
+    const result = await pool.query(update_query, [currentDateTime(), rbq]);
+    return result[0].affectedRows;
+}
+
+const currentDateTime = function(){
+    currentdate = new Date();
+    var datetime = currentdate.getFullYear() + "-"
+    + AddZero((currentdate.getMonth()+1))  + "-" 
+    + AddZero(currentdate.getDate()) + " "  
+    + AddZero(currentdate.getHours()) + ":"  
+    + AddZero(currentdate.getMinutes()) + ":" 
+    + AddZero(currentdate.getSeconds());  
+    return datetime;  
+}
+
+const checkRbqForVerifiedContractor = async (limit) => {
     // create the connection
     const connection = await mysql.createConnection(dbconfig.srv5);
     // query database
-    const [rows, fields] = await connection.execute("SELECT uid, rbq, rbq_exp FROM sr_contractor WHERE active = 'yes' AND verified = 'yes' AND (rbq != null OR rbq != '') LIMIT ?", [limit]);
+    const [rows, fields] = await connection.execute("SELECT uid, rbq, rbq_exp FROM sr_contractor WHERE active = 'yes' AND verified = 'yes' AND (rbq != null OR rbq != '') AND (rbq != null OR rbq != '') AND (DATE(auto_check_RBQ_date) < DATE(now()) OR auto_check_RBQ_date IS NULL) ORDER BY auto_check_RBQ_date LIMIT ?", [limit]);
     
     for(let i=0;i<rows.length;i++){
-        let result = await verifyRBQ(config.config_rbq.baseSiteUrl, rows[i].rbq);
+        let result = await verifyRBQ(config.config_rbq.baseSiteUrl, rows[i].rbq, rows[i].rbq_exp);
         console.log(result);
     }
- 
 }
+
+const checkRbqForLeavingContractor = async (limit) =>{
+    // create the connection
+    const connection = await mysql.createConnection(dbconfig.srv5);
+    // query database
+    const [rows, fields] = await connection.execute("SELECT uid, active, verified, leaving_reason, rbq, rbq_exp FROM sr_contractor where leaving_reason = 'rbq' AND (active <> 'yes' OR verified <> 'yes') AND rbq_exp > curdate() - interval 2 year AND length(rbq) >= 8 ORDER BY auto_check_RBQ_date LIMIT ?", [limit]);
+    
+    for(let i=0;i<rows.length;i++){
+        let result = await verifyRBQ(config.config_rbq.baseSiteUrl, rows[i].rbq, rows[i].rbq_exp);
+        console.log(result);
+    }
+}
+
+const notifyUnverifiedRbqToAdmin = async function(){
+    const sendmail = require('sendmail')();
+ 
+    sendmail({
+        from: 'no-reply@localhost',
+        to: 'louis.jhonny@gmail.com',
+        subject: 'test sendmail',
+        html: 'Mail of test sendmail ',
+      }, function(err, reply) {
+        console.log(err && err.stack);
+        console.dir(reply);
+    });
+
+    console.log("Email sent to admin...");
+}
+
+/**
+ * 
+ * @param {*} num 
+ */
+function AddZero(num) {
+    return (num >= 0 && num < 10) ? "0" + num : num + "";
+}
+
+exports.currentDateTime = currentDateTime;
+exports.checkRbqForVerifiedContractor = checkRbqForVerifiedContractor;
+exports.checkRbqForLeavingContractor = checkRbqForLeavingContractor;
+
