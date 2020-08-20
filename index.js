@@ -3,12 +3,17 @@ const dbconfig = require('./dbconfig');
 const fs = require('fs');
 const fn = require('./rbq_scrapper');
 const schedule = require('node-schedule');
+const automail = require('./automail');
+
+
 
 console.log("-----------------------------------------------------------------------------");
 console.log("STARTING FIRST ROPE ON " + fn.currentDateTime());
 console.log("-----------------------------------------------------------------------------");
 
 fn.checkRbqForVerifiedContractor(500);
+
+
 
 
 //fn2.verifyRBQ(config.config_rbq.baseSiteUrl, "5683610901").then(values => console.log(values));
@@ -31,5 +36,5 @@ var task = schedule.scheduleJob(scrapschedule, async function(){
     console.log("-----------------------------------------------------------------------------");
     console.log("ROPE SARTED ON " + fn.currentDateTime());
     console.log("-----------------------------------------------------------------------------");
-    await fn.checkRbqForVerifiedContractor(10);
+   await fn.checkRbqForVerifiedContractor(10);
 });

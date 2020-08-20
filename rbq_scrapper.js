@@ -3,7 +3,7 @@ const config = require('./config');
 const dbconfig = require('./dbconfig');
 var mysql = require('mysql2/promise');
 const { forEach, find } = require('lodash');
-const sendmail = require('sendmail');
+const automail = require('./automail');
 
 const pool = mysql.createPool(dbconfig.srv5);
 
@@ -69,7 +69,7 @@ const verifyRBQ = async (url, rbq_number, rbq_exp, contractor) =>{
     }
 	}catch(e){
 		await browser.close();
-		return {"date":currentDateTime(), 'error': "Connection timed out while verifying rbq number : " + rbq  + ". The system will try atain later"};
+		return {"date":currentDateTime(), 'error': "Connection timed out while verifying rbq number : " + rbq  + ". The system will try again later"};
 	}
 }
 
@@ -128,19 +128,16 @@ const checkRbqForLeavingContractor = async (limit) =>{
 }
 
 const notifyUnverifiedRbqToAdmin = async function(rbq, rbq_exp, contractor){
-    const sendmail = require('sendmail')();
- 
-    sendmail({
-        from: 'no-reply@renoquotes.com',
-        to: 'louis.jhonny@gmail.com',
-        subject: 'rbq: '+ rbq +' not verified',
-        html: 'Bonjour Jhonny <br> Le numero rbq ' + rbq +' na pas ete verifie pour l\'entrepreneur' + contractor + ' Il expire le : ' + rbq_exp,
-      }, function(err, reply) {
-        console.log(err && err.stack);
-        console.dir(reply);
-    });
+    let email_from = 'no-reply@renoquotes.com';
+    let email_to = 'louis.jhonny@gmail.com';
+    let email_subject = 'rbq: '+ rbq +' not verified';
+    let email_body = "Bonjour<br> Ceci pour vous notifier que le numero rbq : " 
+                    + rbq + " n'a pas pu être vérifié pour l'entrepreneur " + contractor
+                    + "<br>d'après nos informations la date d'expiration est prévue pour le " + rbq_exp;
+    
+    let response = automail.send( email_from, email_to, email_subject, email_body, 'jhonny');
 
-    console.log("Email sent to admin...");
+    console.log(response);
 }
 
 /**
