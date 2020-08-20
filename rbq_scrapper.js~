@@ -69,7 +69,7 @@ const verifyRBQ = async (url, rbq_number, rbq_exp, contractor) =>{
     }
 	}catch(e){
 		await browser.close();
-		return {"date":currentDateTime(), 'error': "Connection timed out while verifying rbq number : " + rbq  + ". The system will try atain later"};
+		return {"date":currentDateTime(), 'error': "Connection timed out while verifying rbq number : " + rbq  + ". The system will try atain later"}};
 	}
 }
 
