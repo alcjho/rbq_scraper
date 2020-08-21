@@ -1,47 +1,164 @@
-## KIJIJI SCRAPER
+## PROJECT NAME: RBQ scraper
 
-### PROJECT DESCRIPTION
+Créer un outil logiciel qui verifie un numero de license RBQ directement sur le site du gouvernement, en utilisant la technologie du web scrapping.
 
-Créer une application nodejs pour charger les annonces sur kijiji dans soumissionrenovation.ca. Le chargement se fera a chaque heure dans la base de données MySQL.
 
-### LIBRAIRIES
 
-- scheduler-js : Permet de créer une tache programmée a l'instar de crontab.
-- axios : Utiliser pour envoyer des requêtes ajax a une page html
-- cheerio : librairie nodejs utiliser pour faire du web scrapping
-- fs : Utiliser pour créer les fichiers logs pour le scrapping
+### Principaux  composants du système
 
-### STRUCTURE
+1. Gestionnaire de taches	
 
-`Fonctions.js`
-Ce fichier représente le core de l'application vu qu'il fourni toutes les fonctions nécessaire au scrapping
+   ​	**package**: node-scheduler
+   ​	**Description**: executer une tache recurrente suivant une cedule donnée
 
-`Index.js`
-ce fichier est le principale de l'application nodejs. Il contient la tache automatisée et gere l'execution de l'application.
+2. Gestionnaire de courriel
 
-`config.js`
-Contient les parametres de configuration de l'application tels que:
-**baseSiteUrl** : qui est le url de base de kijiji
-**startUrl** : qui est le url utilisé au demarrage de l'appli pour trouver les annonces.
+   ​	**package**: nodemailer
+   ​	**Description**: gérer la création et l'envoi de courriels
 
-### FUNCTIONNALITES
+3. Scraper
 
-`getAds()`: c'est la fonction de chargement de tous les annonces sur la page https://www.kijiji.ca/b-skilled-trades/canada/c76l0. *Cette fonction doit être asynchrone*.
+   ​	**package**: Puppeteer
+   ​	**Description**: Faire du scrapping en utilisant une instance du navigateur web chromium.
 
-`loadSiteData( string url)`: cette fonction envoi une requête avec **Axios** vers le l'url passé en paramètre. La réponse retournée est le contenu html de la page qui est charger en mémoire avec **cheerio**. *La fonction loadSiteData doit être asynchrone*.
 
-`getAdsDetail()`: C'est la fonction principale de l'application. Elle charge le lien de chaque annonce en mémoire pour trouver les détails sur celle-ci. Cette fonction s'occupe du mapping des détails des annonces dans la table **sr_contractor_leads**. *La fonction getAdsDetail doit être asynchrone*
 
-`mapToContractLead()`: transforme les données du scraper en enregistrements de base de données.
+### Application
 
-### UTILISATION
+- #### Type d'application
 
-1. Cloner le repository de gihub:
-   `git clone https://github.com/alcjho/kijiji_scrapper.git`
-2. A l'interieur du folder kijiji_scraper, installer toutes les librairies :
-   `npm install`
-3. Démarrer l'application avec la commande suivante:
-   `node index`
-4. Au premier lancement le scraper charge les annonces immediatement.
-   attendez 10 minutes avant le prochain chargement. ou ajouter une nouvelle cédule dans index.js
-5. Voilal!
+  1. **Server headless:** 
+     - non-securisé
+     - 
+  2. **Securité**: 
+     - non-securisé
+       
+
+- #### Fonctionnalité
+
+  - Gestionnaire de courriel
+
+    - automail.send()
+      envoyer un courriel avec en parametres 'to', 'from', 'subject', 'message' et 'template';
+    - automail.template() permet de créer un gabarit assez rapidement pour un courriel quelconque.
+
+  - Gestionnaire de taches
+
+    - Le scheduler est utiliser pour programmer le lancement de la verification des numeros rbq par batch de taille fixe, en suivant une cédule qui peut être parametrée.
+
+  - Web scrapping
+
+    - Ce module représente l'essence de l'application a pouvoir se connecter sur le site web de la rbq avec le navigateur web chromium et naviger suivant le même scénario d'un utilisateur. Ceci est nécéssaire vu que l'application web n'offre aucun API pour cette fonctionnalité.
+
+      **Puppeteer** est une librairie très connue pour faire du web scrapping. Elle permet d'assurer la verification du rbq sur le site https://www.pes.rbq.gouv.qc.ca/RegistreLicences/Recherche?mode=Entreprise. 
+
+      **verifiedRBQ**() : est la methode principale qui est appelé a jouer le scénario sur le siteweb et retourne le status du rbq trouvé (verifié ou non-verifié). 
+
+      - Si un rbq est trouvé il le signale dans le fichier log **logs/rbq_log.txt**
+      - sinon, un email est envoyé a l'administration pour notifier un numéro RBQ non-verifié, pour faciliter le suivis avec l'entrepreneur.
+        
+
+      **checkRbqForVerifiedContractor**() : Va a travers la liste complète des entrepreneur qui sont **verifiés** et **actifs** et avec un rbq au moins avec le bon format (minimum 7 caractères, que des chiffres). 
+
+      **NB**: Cette fonction opère seulement en batch. La verification se fait seulement une fois pour chaque numero dans la période cédulé.
+
+      **checkRbqForLeavingContractor**() : Va a travers la liste des entrepreneur qui sont **verifiés** ou **actifs** et qui ont laissé **8 mois** de cela pour la raison **RBQ**.
+
+      **NB**: Cette fonction opère seulement en batch. La verification se fait seulement une fois pour chaque numero dans la période cédulé.
+
+      
+
+- #### Installation
+
+  - Cloner le projet a partir de github  `git clone https://github.com/alcjho/rbq_scraper.git`
+
+  - Créer les fichiers de configuration.
+
+    - ./smtp_config , ajouter le contenu suivant dans un environnement de test après avoir configurer votre compte sur smtp.mailtrap.io ( remplacer **user** et **pass** ) :
+
+      `const config = { 
+      	host: "smtp.mailtrap.io",
+      	port: "2525",
+      	auth: {
+      		user: "ccff8b40c9281d",
+      		pass: "a8f76f283e5c40"
+      	}`
+      `};`
+      `exports.config = config;`
+      
+    - ./smtp_config , ajouter le contenu suivant dans en production:
+      
+
+    `const config = { 
+      	host: "soumissionrenovation.ca",
+    	port: "2525"
+      };`
+      `exports.config = config;`
+
+    - ./dbconfig.js - ajouter cette le contenu suivant en remplacant les valeurs avec celles de votre base de données
+
+      `const srv5 = {`
+
+        `host: 'localhost',`
+
+        `user: 'manager',`
+
+        `database: 'srv5',`
+
+        `password: '_Passwd01',`
+
+        `waitForConnections: true,`
+
+        `connectionLimit: 10,`
+
+        `queueLimit: 0`
+
+      `};`
+
+      `exports.srv5 = srv5;`
+
+    - ./config.js - ce fichier de configuration est imporant pour le scraper. Ajouter le contenu suivantconst 
+
+
+      `config = {`
+
+        	`baseSiteUrl: https://www.kijiji.ca/b-skilled-trades/canada/c76l0,`
+        
+        	`startUrl: https://www.kijiji.ca/b-skilled-trades/canada/c76l0,`
+        
+        	`concurrency: 10,`
+        
+        	`maxRetries: 3, 	`
+
+        	`logPath: './logs/'`
+
+      ​  `};`
+
+      
+
+      `const config_rbq = {`
+
+        	`baseSiteUrl: https://www.pes.rbq.gouv.qc.ca/RegistreLicences/Recherche?mode=Entreprise,`
+
+      `}`
+
+      
+
+      `exports.config = config;`
+
+      `exports.config_rbq = config_rbq;`
+
+    - Finalement installer les librairies nodejs avec la commande suivante, et c'est parti!
+
+      ##### npm install
+
+    - Lancer l'application
+
+      ##### node index.js
+
+      
+
+- ## Versions
+
+  - v1.0 - publiée par louis.jhonny@gmail.com - 2020-08-17
+  - v1.1 : Ajout d'un module email avec nodemailer - Modifiée par louis.jhonny@gmail.com - 2020-08-20
