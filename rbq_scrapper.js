@@ -2,7 +2,6 @@ const puppeteer = require('puppeteer');
 const config = require('./config');
 const dbconfig = require('./dbconfig');
 var mysql = require('mysql2/promise');
-const { forEach, find } = require('lodash');
 const automail = require('./automail');
 
 const pool = mysql.createPool(dbconfig.srv5);
