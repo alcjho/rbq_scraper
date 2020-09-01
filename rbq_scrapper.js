@@ -57,23 +57,29 @@ const verifyRBQ = async (url, rbq_number, rbq_exp, contractor, leaving) =>{
                     await notifyUnverifiedRbqToAdmin(rbq, rbq_exp, contractor, 'leaving');
                 }
                 // Log result
+                await browser.close();
                 return {"date":currentDateTime(),  "error": "The rbq number : " + rbq_number + " was not found in our database"};
             case 1:
                 // update success in database
                 await updateRBQ(rbq, true);
                 // Log result
+                await browser.close();
                 return {"date":currentDateTime(), "success":"rbq number : " + rbq_number + " has been found!"};
             default:
+                await browser.close();
                 return {"date":currentDateTime(), "error":"unknown error while verifying rbq number : " + rbq_number + " Try again later"};
             }
         }
     }else{
+        await browser.close();
         return {"error":"RBQ number cannot be empty"};
     }
 	}catch(e){
-		await browser.close();
+	    await browser.close();
 		return {"date":currentDateTime(), 'error': "Connection timed out while verifying rbq number : " + rbq_number_  + ". The system will try again later"};
 	}
+	
+	await browser.close();
 }
 
 

@@ -1,43 +1,43 @@
 -----------------------------------------------------------------------------
-STARTING FIRST ROPE ON 2020-09-01 14:25:34
+STARTING FIRST ROPE ON 2020-09-01 15:23:17
 -----------------------------------------------------------------------------
 {
-  date: '2020-09-01 14:25:39',
-  success: 'rbq number : 5711-2542-01 has been found!'
+  date: '2020-09-01 15:23:21',
+  success: 'rbq number : 5728-4218-01 has been found!'
 }
 {
-  date: '2020-09-01 14:25:43',
-  success: 'rbq number : 5752-7186-01 has been found!'
+  date: '2020-09-01 15:23:25',
+  success: 'rbq number : 5684-7791-01 has been found!'
 }
 {
-  date: '2020-09-01 14:25:46',
-  success: 'rbq number : 8352-5923-12 has been found!'
+  date: '2020-09-01 15:23:29',
+  success: 'rbq number : 5745-7756-01 has been found!'
 }
 {
-  date: '2020-09-01 14:25:50',
-  success: 'rbq number : 8114-8421-38 has been found!'
+  date: '2020-09-01 15:23:33',
+  success: 'rbq number : 5696-0537-01 has been found!'
 }
 {
-  date: '2020-09-01 14:25:53',
-  success: 'rbq number : 5770-7598-01 has been found!'
+  date: '2020-09-01 15:23:36',
+  success: 'rbq number : 5768-7618-01 has been found!'
 }
 {
-  date: '2020-09-01 14:25:56',
-  success: 'rbq number : 5767-7163-01 has been found!'
+  date: '2020-09-01 15:23:40',
+  success: 'rbq number : 5769-9043-01 has been found!'
 }
 {
-  date: '2020-09-01 14:26:00',
-  success: 'rbq number : 5723-2084-01 has been found!'
+  date: '2020-09-01 15:23:43',
+  success: 'rbq number : 5756-2704-01 has been found!'
 }
 {
-  date: '2020-09-01 14:26:04',
-  success: 'rbq number : 5774-7602-01 has been found!'
+  date: '2020-09-01 15:23:47',
+  success: 'rbq number : 5730-5393-01 has been found!'
 }
 {
-  date: '2020-09-01 14:26:08',
-  success: 'rbq number : 5593-2024-01 has been found!'
+  date: '2020-09-01 15:23:50',
+  success: 'rbq number : 5766-3049-01 has been found!'
 }
 {
-  date: '2020-09-01 14:26:12',
-  success: 'rbq number : 1914-4971-58 has been found!'
+  date: '2020-09-01 15:23:54',
+  success: 'rbq number : 5677-2650-01 has been found!'
 }
