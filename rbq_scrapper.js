@@ -6,7 +6,7 @@ const automail = require('./automail');
 
 const pool = mysql.createPool(dbconfig.srv5);
 
-const verifyRBQ = async (url, rbq_number, rbq_exp, contractor) =>{
+const verifyRBQ = async (url, rbq_number, rbq_exp, contractor, leaving) =>{
 	let rbq = rbq_number;
 
     // 1- Load the first url and jquery librairy
@@ -51,16 +51,20 @@ const verifyRBQ = async (url, rbq_number, rbq_exp, contractor) =>{
                 // update failure in database
                 await updateRBQ(rbq, false);
                 // send email to admin for unverified
-                await notifyUnverifiedRbqToAdmin(rbq, rbq_exp, contractor);
+                if(!leaving){
+                    await notifyUnverifiedRbqToAdmin(rbq, rbq_exp, contractor);
+                }else{
+                    await notifyUnverifiedRbqToAdmin(rbq, rbq_exp, contractor, 'leaving');
+                }
                 // Log result
-                return {"date":currentDateTime(),  "error": "The rbq number : " + rbq + " was not found in our database"};
+                return {"date":currentDateTime(),  "error": "The rbq number : " + rbq_number + " was not found in our database"};
             case 1:
                 // update success in database
                 await updateRBQ(rbq, true);
                 // Log result
-                return {"date":currentDateTime(), "success":"rbq number : " + rbq + " has been found!"};
+                return {"date":currentDateTime(), "success":"rbq number : " + rbq_number + " has been found!"};
             default:
-                return {"date":currentDateTime(), "error":"unknown error while verifying rbq number : " + rbq + " Try again later"};
+                return {"date":currentDateTime(), "error":"unknown error while verifying rbq number : " + rbq_number + " Try again later"};
             }
         }
     }else{
@@ -68,7 +72,7 @@ const verifyRBQ = async (url, rbq_number, rbq_exp, contractor) =>{
     }
 	}catch(e){
 		await browser.close();
-		return {"date":currentDateTime(), 'error': "Connection timed out while verifying rbq number : " + rbq  + ". The system will try again later"};
+		return {"date":currentDateTime(), 'error': "Connection timed out while verifying rbq number : " + rbq_number_  + ". The system will try again later"};
 	}
 }
 
@@ -102,41 +106,55 @@ const currentDateTime = function(){
     return datetime;  
 }
 
+const filterRbq = function (rbq_number) {
+    regex = /^[ .()-]*(\d[ .()-]*){10}$/g;
+    regex1 = /[\d -]+/g;
+    regex2 = /[\d]/g;
+    rbq = regex.test(rbq_number);
+    console.log(rbq);
+}
+
 const checkRbqForVerifiedContractor = async (limit) => {
     // create the connection
     const connection = await mysql.createConnection(dbconfig.srv5);
     // query database
-    const [rows, fields] = await connection.execute("SELECT uid, rbq, rbq_exp, company_name FROM sr_contractor WHERE active = 'yes' AND verified = 'yes' AND (rbq != null OR rbq != '') AND (rbq != null OR rbq != '') AND (DATE(auto_check_RBQ_date) < DATE(now()) OR auto_check_RBQ_date IS NULL) ORDER BY auto_check_RBQ_date LIMIT ?", [limit]);
+    const [rows, fields] = await connection.execute("SELECT uid, rbq, rbq_exp, company_name FROM sr_contractor WHERE rbq REGEXP '^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$' AND rbq NOT REGEXP '/'  AND LENGTH(rbq) >= 10 AND  LENGTH(rbq) <= 12 AND active = 'yes' AND verified = 'yes' AND (rbq != null OR rbq != '') AND (rbq != null OR rbq != '') AND (auto_check_RBQ_date <  NOW() - INTERVAL 3 MONTH  OR auto_check_RBQ_date IS NULL) ORDER BY auto_check_RBQ_date LIMIT ?", [limit]);
     
     for(let i=0;i<rows.length;i++){
         let result = await verifyRBQ(config.config_rbq.baseSiteUrl, rows[i].rbq, rows[i].rbq_exp, rows[i].company_name);
         console.log(result);
     }
 }
+
 
 const checkRbqForLeavingContractor = async (limit) =>{
     // create the connection
     const connection = await mysql.createConnection(dbconfig.srv5);
     // query database
-    const [rows, fields] = await connection.execute("SELECT uid, active, verified, leaving_reason, rbq, rbq_exp, company_name FROM sr_contractor where leaving_reason = 'rbq' AND (active <> 'yes' OR verified <> 'yes') AND rbq_exp > curdate() - interval 2 year AND length(rbq) >= 8 ORDER BY auto_check_RBQ_date LIMIT ?", [limit]);
+    const [rows, fields] = await connection.execute("SELECT uid, active, verified, leaving_reason, rbq, rbq_exp, company_name FROM sr_contractor where rbq REGEXP '^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$' AND LENGTH(rbq) >= 10 AND LENGTH(rbq) <= 12 AND leaving_reason = 'rbq' AND (active <> 'yes' OR verified <> 'yes') AND rbq_exp > curdate() - interval 2 year AND length(rbq) >= 8 ORDER BY auto_check_RBQ_date LIMIT ?", [limit]);
     
     for(let i=0;i<rows.length;i++){
-        let result = await verifyRBQ(config.config_rbq.baseSiteUrl, rows[i].rbq, rows[i].rbq_exp, rows[i].company_name);
+        let result = await verifyRBQ(config.config_rbq.baseSiteUrl, rows[i].rbq, rows[i].rbq_exp, rows[i].company_name, 'leaving');
         console.log(result);
     }
 }
 
-const notifyUnverifiedRbqToAdmin = async function(rbq, rbq_exp, contractor){
+const notifyUnverifiedRbqToAdmin = async function(rbq, rbq_exp, contractor, leaving){
+    let email_subject = 'Active subscriver rbq: '+ rbq +' is not verified';;
+
+    //change email subject if originated from Leaving subscribers
+    if(leaving){
+        email_subject = 'Leaving subscriber rbq: '+ rbq +' is not verified';
+    }
+
     let email_from = 'no-reply@renoquotes.com';
     let email_to = 'louis.jhonny@gmail.com';
-    let email_subject = 'rbq: '+ rbq +' not verified';
     let email_body = "Bonjour<br> Ceci pour vous notifier que le numero rbq : " 
                     + rbq + " n'a pas pu être vérifié pour l'entrepreneur " + contractor
                     + "<br>d'après nos informations la date d'expiration est prévue pour le " + rbq_exp;
     
     let response = automail.send( email_from, email_to, email_subject, email_body, 'jhonny');
 
-    console.log(response);
 }
 
 /**
@@ -150,4 +168,4 @@ function AddZero(num) {
 exports.currentDateTime = currentDateTime;
 exports.checkRbqForVerifiedContractor = checkRbqForVerifiedContractor;
 exports.checkRbqForLeavingContractor = checkRbqForLeavingContractor;
-
+exports.filterRbq = filterRbq;

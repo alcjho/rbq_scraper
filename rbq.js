@@ -11,30 +11,44 @@ console.log("-------------------------------------------------------------------
 console.log("STARTING FIRST ROPE ON " + fn.currentDateTime());
 console.log("-----------------------------------------------------------------------------");
 
-fn.checkRbqForVerifiedContractor(500);
+fn.checkRbqForLeavingContractor(150);
 
 
-
-
-//fn2.verifyRBQ(config.config_rbq.baseSiteUrl, "5683610901").then(values => console.log(values));
-
-
-//create a schedule before continue
+//create a schedule for active subscriber
 var secondes = "";     // (0-59) optional
-var minutes = "*/30";     // (0-59) required
-var hour = "*";         // (0-23) required
+var minutes = "*/25";     // (0-59) required
+var hour = "20";         // (0-23) required
 var day_of_month = "*"; // (1-31) required
 var month = "*";        // (1-12) required
 var day_of_week = "*";  // (0-7) required : 0 or 7 is Sun
+secondes = (secondes != "")? secondes + ' ' : '';
+let scrapschedule1 = minutes +' '+ hour +' '+ day_of_month +' '+ month +' '+ day_of_week;
+
+//launch the task for active subscribers
+var task1 = schedule.scheduleJob(scrapschedule1, async function(){
+    console.log("-----------------------------------------------------------------------------");
+    console.log("ACTIVE SUBSCRIBER - ROPE SARTED ON " + fn.currentDateTime());
+    console.log("-----------------------------------------------------------------------------");
+    //await fn.checkRbqForVerifiedContractor(300);
+});
+
+
+//create a schedule for leaving subscriber
+secondes = "";     // (0-59) optional
+minutes = "*/10";     // (0-59) required
+hour = "6";         // (0-23) required
+day_of_month = "*"; // (1-31) required
+month = "*";        // (1-12) required
+day_of_week = "*";  // (0-7) required : 0 or 7 is Sun
 
 secondes = (secondes != "")? secondes + ' ' : '';
+let scrapschedule2 = minutes +' '+ hour +' '+ day_of_month +' '+ month +' '+ day_of_week;
 
-let scrapschedule = minutes +' '+ hour +' '+ day_of_month +' '+ month +' '+ day_of_week;
 
-//launch the scrapping task
-var task = schedule.scheduleJob(scrapschedule, async function(){
+//launch the task for leaving subscribers
+var task2 = schedule.scheduleJob(scrapschedule2, async function(){
     console.log("-----------------------------------------------------------------------------");
-    console.log("ROPE SARTED ON " + fn.currentDateTime());
+    console.log("LEAVING SUBSCRIBER - ROPE SARTED ON " + fn.currentDateTime());
     console.log("-----------------------------------------------------------------------------");
-   await fn.checkRbqForVerifiedContractor(10);
+    await fn.checkRbqForLeavingContractor(100);
 });
