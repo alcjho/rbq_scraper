@@ -147,7 +147,7 @@ const notifyUnverifiedRbqToAdmin = async function(rbq, rbq_exp, contractor, leav
         email_subject = 'Leaving subscriber rbq: '+ rbq +' is not verified';
     }
 
-    let email_from = 'pros@renoquotes.com';
+    let email_from = 'no-reply@renoquotes.com';
     let email_to = 'louis.jhonny@gmail.com';
     let email_body = "Bonjour<br> Ceci pour vous notifier que le numero rbq : " 
                     + rbq + " n'a pas pu être vérifié pour l'entrepreneur " + contractor

@@ -17,7 +17,7 @@ const templates = {
 const send = function(email_from, email_to, email_subject, message, template_name){
     const body = {
         from: email_from,
-        to: smtp.admin, 
+        to: email_to, 
         subject: email_subject,
         html: templates[template_name].header + message + templates[template_name].footer
 
