@@ -28,7 +28,7 @@ var task1 = schedule.scheduleJob(scrapschedule1, async function(){
     console.log("-----------------------------------------------------------------------------");
     console.log("ACTIVE SUBSCRIBER - ROPE SARTED ON " + fn.currentDateTime());
     console.log("-----------------------------------------------------------------------------");
-    //await fn.checkRbqForVerifiedContractor(300);
+    await fn.checkRbqForVerifiedContractor(300);
 });
 
 
