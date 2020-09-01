@@ -1,3 +1,5 @@
 node_modules/
-/dbconfig.js
-/smtp_config.js
+dbconfig.js
+smtp_config.js
+logs/
+*~

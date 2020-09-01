@@ -1,0 +1,43 @@
+-----------------------------------------------------------------------------
+STARTING FIRST ROPE ON 2020-09-01 14:25:34
+-----------------------------------------------------------------------------
+{
+  date: '2020-09-01 14:25:39',
+  success: 'rbq number : 5711-2542-01 has been found!'
+}
+{
+  date: '2020-09-01 14:25:43',
+  success: 'rbq number : 5752-7186-01 has been found!'
+}
+{
+  date: '2020-09-01 14:25:46',
+  success: 'rbq number : 8352-5923-12 has been found!'
+}
+{
+  date: '2020-09-01 14:25:50',
+  success: 'rbq number : 8114-8421-38 has been found!'
+}
+{
+  date: '2020-09-01 14:25:53',
+  success: 'rbq number : 5770-7598-01 has been found!'
+}
+{
+  date: '2020-09-01 14:25:56',
+  success: 'rbq number : 5767-7163-01 has been found!'
+}
+{
+  date: '2020-09-01 14:26:00',
+  success: 'rbq number : 5723-2084-01 has been found!'
+}
+{
+  date: '2020-09-01 14:26:04',
+  success: 'rbq number : 5774-7602-01 has been found!'
+}
+{
+  date: '2020-09-01 14:26:08',
+  success: 'rbq number : 5593-2024-01 has been found!'
+}
+{
+  date: '2020-09-01 14:26:12',
+  success: 'rbq number : 1914-4971-58 has been found!'
+}
