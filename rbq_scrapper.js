@@ -50,18 +50,24 @@ const verifyRBQ = async (url, rbq_number, rbq_exp, contractor, leaving) =>{
             case 0:
                 // update failure in database
                 await updateRBQ(rbq, false);
-                // send email to admin for unverified
+                
+                // send email to admin for unverified rbq
                 if(!leaving){
                     await notifyUnverifiedRbqToAdmin(rbq, rbq_exp, contractor);
-                }else{
-                    await notifyUnverifiedRbqToAdmin(rbq, rbq_exp, contractor, 'leaving');
                 }
+                
                 // Log result
                 await browser.close();
                 return {"date":currentDateTime(),  "error": "The rbq number : " + rbq_number + " was not found in our database"};
             case 1:
                 // update success in database
                 await updateRBQ(rbq, true);
+                
+                // send email to admin for verified rbq
+                if(leaving){
+                    await notifyVerifiedRbqToAdmin(rbq, rbq_exp, contractor);
+                }
+                
                 // Log result
                 await browser.close();
                 return {"date":currentDateTime(), "success":"rbq number : " + rbq_number + " has been found!"};
@@ -145,22 +151,29 @@ const checkRbqForLeavingContractor = async (limit) =>{
     }
 }
 
-const notifyUnverifiedRbqToAdmin = async function(rbq, rbq_exp, contractor, leaving){
-    let email_subject = 'Active subscriver rbq: '+ rbq +' is not verified';;
-
-    //change email subject if originated from Leaving subscribers
-    if(leaving){
-        email_subject = 'Leaving subscriber rbq: '+ rbq +' is not verified';
-    }
+const notifyUnverifiedRbqToAdmin = async function(rbq, rbq_exp, contractor){
+    let email_subject = 'Active subscriver rbq: '+ rbq +' is not verified';
 
     let email_from = 'pros@renoquotes.com';
-    let email_to = 'louis.jhonny@gmail.com';
+    let email_to = 'noreply@soumissionrenovation.ca';
     let email_body = "Bonjour<br> Ceci pour vous notifier que le numero rbq : " 
                     + rbq + " n'a pas pu être vérifié pour l'entrepreneur " + contractor
-                    + "<br>d'après nos informations la date d'expiration est prévue pour le " + rbq_exp;
+                    + "<br>d'après nos informations la licence devrait expirée le " + rbq_exp;
     
-    let response = automail.send( email_from, email_to, email_subject, email_body, 'jhonny');
+    let response = automail.send( email_from, email_to, email_subject, email_body, 'sendRBQUnverifiedNoticeToAdmin');
 
+}
+
+const notifyVerifiedRbqToAdmin = async function(rbq, rbq_exp, contractor){
+    let email_subject = 'Leaving subscriber rbq: '+ rbq +' has been successfully verified';
+
+    let email_from = 'pros@renoquotes.com';
+    let email_to = 'noreply@soumissionrenovation.ca';
+    let email_body = "Bonjour<br> Ceci pour vous notifier que le numéro rbq : " 
+                    + rbq + " est toujours valable pour l'entrepreneur " + contractor
+                    + "<br>d'après nos informations la licence devrait expirée le " + rbq_exp;
+    
+    let response = automail.send( email_from, email_to, email_subject, email_body, 'sendRBQVerifiedNoticeToAdmin');
 }
 
 /**

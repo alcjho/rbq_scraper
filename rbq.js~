@@ -11,7 +11,8 @@ console.log("-------------------------------------------------------------------
 console.log("STARTING FIRST ROPE ON " + fn.currentDateTime());
 console.log("-----------------------------------------------------------------------------");
 
-fn.checkRbqForVerifiedContractor(10);
+//fn.checkRbqForVerifiedContractor(10);
+  fn.checkRbqForLeavingContractor(300);
 
 //create a schedule for active subscriber
 var secondes = "";     // (0-59) optional
