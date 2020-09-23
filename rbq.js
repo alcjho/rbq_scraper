@@ -7,12 +7,12 @@ const automail = require('./automail');
 
 
 
-console.log("-----------------------------------------------------------------------------");
-console.log("STARTING FIRST ROPE ON " + fn.currentDateTime());
-console.log("-----------------------------------------------------------------------------");
+// console.log("-----------------------------------------------------------------------------");
+// console.log("STARTING FIRST ROPE ON " + fn.currentDateTime());
+// console.log("-----------------------------------------------------------------------------");
 
 //fn.checkRbqForVerifiedContractor(10);
-  fn.checkRbqForLeavingContractor(300);
+ fn.checkRbqForLeavingContractor(10);
 
 //create a schedule for active subscriber
 var secondes = "";     // (0-59) optional
@@ -23,6 +23,9 @@ var month = "*";        // (1-12) required
 var day_of_week = "*";  // (0-7) required : 0 or 7 is Sun
 secondes = (secondes != "")? secondes + ' ' : '';
 let scrapschedule1 = minutes +' '+ hour +' '+ day_of_month +' '+ month +' '+ day_of_week;
+
+
+console.log("Idle state - waiting for scheduler...");
 
 //launch the task for active subscribers
 var task1 = schedule.scheduleJob(scrapschedule1, async function(){

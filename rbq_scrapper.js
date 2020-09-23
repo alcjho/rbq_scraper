@@ -22,8 +22,8 @@ const verifyRBQ = async (url, rbq_number, rbq_exp, contractor, leaving) =>{
 
         rbq = rbq.replace(/\D/g, "").replace(/\s/g,"");
         
-        if(rbq.length != 10){
-            console.log('Wrong rbq format: ' + rbq);       
+        if(rbq.length < 8){
+            console.log('Wrong rbq format: ' + rbq);
         }else{
             // Put the focus in the RBQ license field
             await page.focus("#noLicence");
@@ -38,42 +38,43 @@ const verifyRBQ = async (url, rbq_number, rbq_exp, contractor, leaving) =>{
                 page.click("#wrapper > div > div > form > fieldset > div > button"),
                 page.waitForNavigation({ waitUntil: 'networkidle0' }),
             ]);
-        }
 
-        result = await page.evaluate(() => {
-            return $("#wrapper > div > div > div.resume-fiche").length;
-        })
-
-        // Test the result and return the outcome.
-        if(result !== undefined){
-            switch(result){
-            case 0:
+            result = await page.evaluate(() => {
+                return $("#wrapper > div > div > div.resume-fiche").length;
+            })
+    
+            // Test the result and return the outcome.
+            if(result !== undefined){
+                
                 // update failure in database
-                await updateRBQ(rbq, false);
+                let affrows = await updateRBQ(rbq, false);
                 
-                // send email to admin for unverified rbq
-                if(!leaving){
-                    await notifyUnverifiedRbqToAdmin(rbq, rbq_exp, contractor);
+                switch(result){
+                case 0:
+                    // send email to admin for unverified rbq
+                    if(!leaving){
+                        await notifyUnverifiedRbqToAdmin(rbq, rbq_exp, contractor);
+                    }
+                    
+                    // Log result
+                    await browser.close();
+                    return {"date":currentDateTime(),  "error": "The rbq number : " + rbq_number + " was not found in our database"};
+                case 1:
+                    // update success in database
+                    let affrows = await updateRBQ(rbq, true);
+                    
+                    // send email to admin for verified rbq
+                    if(leaving){
+                        await notifyVerifiedRbqToAdmin(rbq, rbq_exp, contractor);
+                    }
+                    
+                    // Log result
+                    await browser.close();
+                    return {"date":currentDateTime(), "success":"rbq number : " + rbq_number + " has been found!"};
+                default:
+                    await browser.close();
+                    return {"date":currentDateTime(), "error":"unknown error while verifying rbq number : " + rbq_number + " Try again later"};
                 }
-                
-                // Log result
-                await browser.close();
-                return {"date":currentDateTime(),  "error": "The rbq number : " + rbq_number + " was not found in our database"};
-            case 1:
-                // update success in database
-                await updateRBQ(rbq, true);
-                
-                // send email to admin for verified rbq
-                if(leaving){
-                    await notifyVerifiedRbqToAdmin(rbq, rbq_exp, contractor);
-                }
-                
-                // Log result
-                await browser.close();
-                return {"date":currentDateTime(), "success":"rbq number : " + rbq_number + " has been found!"};
-            default:
-                await browser.close();
-                return {"date":currentDateTime(), "error":"unknown error while verifying rbq number : " + rbq_number + " Try again later"};
             }
         }
     }else{
@@ -82,7 +83,7 @@ const verifyRBQ = async (url, rbq_number, rbq_exp, contractor, leaving) =>{
     }
 	}catch(e){
 	    await browser.close();
-		return {"date":currentDateTime(), 'error': "Connection timed out while verifying rbq number : " + rbq_number_  + ". The system will try again later"};
+		return {"date":currentDateTime(), 'error': "Connection timed out while verifying rbq number : " + rbq_number  + ". The system will try again later"};
 	}
 	
 	await browser.close();
@@ -130,10 +131,10 @@ const checkRbqForVerifiedContractor = async (limit) => {
     // create the connection
     const connection = await mysql.createConnection(dbconfig.srv5);
     // query database
-    const [rows, fields] = await connection.execute("SELECT uid, rbq, rbq_exp, company_name FROM sr_contractor WHERE rbq REGEXP '^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$' AND rbq NOT REGEXP '/'  AND LENGTH(rbq) >= 10 AND  LENGTH(rbq) <= 12 AND active = 'yes' AND verified = 'yes' AND (rbq != null OR rbq != '') AND (rbq != null OR rbq != '') AND (auto_check_RBQ_date <  NOW() - INTERVAL 3 MONTH  OR auto_check_RBQ_date IS NULL) ORDER BY auto_check_RBQ_date LIMIT ?", [limit]);
+    const [rows, fields] = await connection.execute("SELECT c.uid, c.rbq, c.rbq_exp, c.company_name FROM sr_contractor c inner join sr_contractor_territory ct on ct.uid_contractor = c.uid inner join sr_territory t on t.uid = ct.uid_territory AND t.uid_province = 1 WHERE LENGTH(c.rbq) >= 8 AND LENGTH(c.rbq) <= 12 AND c.active = 'yes' AND c.verified = 'yes' AND (c.rbq != null OR c.rbq != '') AND (c.auto_check_RBQ_date <  NOW() - INTERVAL 1 MONTH OR c.auto_check_RBQ_date IS NULL) GROUP BY c.uid ORDER BY c.auto_check_RBQ_date LIMIT ?", [limit]);
     
     for(let i=0;i<rows.length;i++){
-        let result = await verifyRBQ(config.config_rbq.baseSiteUrl, rows[i].rbq, rows[i].rbq_exp, rows[i].company_name);
+        let result = await verifyRBQ(config.config_rbq.baseSiteUrl, rows[i].rbq, rows[i].rbq_exp, rows[i].uid);
         console.log(result);
     }
 }
@@ -146,7 +147,7 @@ const checkRbqForLeavingContractor = async (limit) =>{
     const [rows, fields] = await connection.execute("SELECT uid, active, verified, leaving_reason, rbq, rbq_exp, company_name FROM sr_contractor where rbq REGEXP '^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$' AND LENGTH(rbq) >= 10 AND LENGTH(rbq) <= 12 AND leaving_reason = 'rbq' AND (active <> 'yes' OR verified <> 'yes') AND rbq_exp > curdate() - interval 2 year AND length(rbq) >= 8 ORDER BY auto_check_RBQ_date LIMIT ?", [limit]);
     
     for(let i=0;i<rows.length;i++){
-        let result = await verifyRBQ(config.config_rbq.baseSiteUrl, rows[i].rbq, rows[i].rbq_exp, rows[i].company_name, 'leaving');
+        let result = await verifyRBQ(config.config_rbq.baseSiteUrl, rows[i].rbq, rows[i].rbq_exp, rows[i].uid, 'leaving');
         console.log(result);
     }
 }
@@ -158,7 +159,8 @@ const notifyUnverifiedRbqToAdmin = async function(rbq, rbq_exp, contractor){
     let email_to = 'noreply@soumissionrenovation.ca';
     let email_body = "Bonjour<br> Ceci pour vous notifier que le numero rbq : " 
                     + rbq + " n'a pas pu être vérifié pour l'entrepreneur " + contractor
-                    + "<br>d'après nos informations la licence devrait expirée le " + rbq_exp;
+                    + "<br>d'après nos informations la licence devrait expirée le " + rbq_exp
+                    + "<br><br>https://ssrv5.sednove.com/fr/stats_contractors?id_contractor=" + contractor;
     
     let response = automail.send( email_from, email_to, email_subject, email_body, 'sendRBQUnverifiedNoticeToAdmin');
 
@@ -171,7 +173,8 @@ const notifyVerifiedRbqToAdmin = async function(rbq, rbq_exp, contractor){
     let email_to = 'noreply@soumissionrenovation.ca';
     let email_body = "Bonjour<br> Ceci pour vous notifier que le numéro rbq : " 
                     + rbq + " est toujours valable pour l'entrepreneur " + contractor
-                    + "<br>d'après nos informations la licence devrait expirée le " + rbq_exp;
+                    + "<br>d'après nos informations la licence devrait expirée le " + rbq_exp
+                    + "<br><br>https://ssrv5.sednove.com/fr/stats_contractors?id_contractor=" + contractor;
     
     let response = automail.send( email_from, email_to, email_subject, email_body, 'sendRBQVerifiedNoticeToAdmin');
 }
