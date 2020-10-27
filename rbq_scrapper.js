@@ -1,3 +1,10 @@
+/**
+ * @description Core module of rbq scrapping contains all functions to retrieve data from https://www.pes.rbq.gouv.qc.ca/RegistreLicences/Recherche?mode=Entreprise 
+ * @author louis.jhonny@mgail.com 2020-10-23
+ * @version 1.0
+ * 
+ **/
+ 
 const puppeteer = require('puppeteer');
 const config = require('./config');
 const dbconfig = require('./dbconfig');
