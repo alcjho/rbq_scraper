@@ -23,7 +23,7 @@ var month = "*";        // (1-12) required
 var day_of_week = "*";  // (0-7) required : 0 or 7 is Sun
 secondes = (secondes != "")? secondes + ' ' : '';
 let scrapschedule1 = minutes +' '+ hour +' '+ day_of_month +' '+ month +' '+ day_of_week;
-
+let json_batch = [];
 
 console.log("Idle state - waiting for scheduler...");
 
@@ -32,7 +32,9 @@ var task1 = schedule.scheduleJob(scrapschedule1, async function(){
     console.log("-----------------------------------------------------------------------------");
     console.log("ACTIVE SUBSCRIBER - ROPE SARTED ON " + fn.currentDateTime());
     console.log("-----------------------------------------------------------------------------");
-    await fn.checkRbqForVerifiedContractor(300);
+
+    let result = await fn.checkRbqForVerifiedContractor(300);
+
 });
 
 

@@ -10,6 +10,7 @@ const config = require('./config');
 const dbconfig = require('./dbconfig');
 var mysql = require('mysql2/promise');
 const automail = require('./automail');
+const fs = require('fs');
 
 const pool = mysql.createPool(dbconfig.srv5);
 
@@ -55,13 +56,17 @@ const verifyRBQ = async (url, rbq_number, rbq_exp, contractor, leaving) =>{
                 
                 // update failure in database
                 let affrows = await updateRBQ(rbq, false);
-                
+
                 switch(result){
                 case 0:
                     // send email to admin for unverified rbq
                     if(!leaving){
-                        await notifyUnverifiedRbqToAdmin(rbq, rbq_exp, contractor);
+                        //await notifyUnverifiedRbqToAdmin(rbq, rbq_exp, contractor);
+                        let rbqinfo = {rbq: rbq, rbq_exp: rbq_exp, contractor:contractor, status: 'UnverifiedRBQ for active subscriber'};
+                        await updateNotificationBatch(rbqinfo);         
                     }
+
+
                     
                     // Log result
                     await browser.close();
@@ -69,10 +74,13 @@ const verifyRBQ = async (url, rbq_number, rbq_exp, contractor, leaving) =>{
                 case 1:
                     // update success in database
                     let affrows = await updateRBQ(rbq, true);
-                    
+
+
                     // send email to admin for verified rbq
                     if(leaving){
-                        await notifyVerifiedRbqToAdmin(rbq, rbq_exp, contractor);
+                        //await notifyVerifiedRbqToAdmin(rbq, rbq_exp, contractor);
+                        let rbqinfo = {rbq: rbq, rbq_exp: rbq_exp, contractor:contractor, status: 'Verified RBQ for leaving subscriber'};
+                        await updateNotificationBatch(rbqinfo);         
                     }
                     
                     // Log result
@@ -94,6 +102,20 @@ const verifyRBQ = async (url, rbq_number, rbq_exp, contractor, leaving) =>{
 	}
 	
 	await browser.close();
+}
+
+
+const updateNotificationBatch = async (data) => {
+     // create the connection
+     const connection = await mysql.createConnection(dbconfig.srv5);
+     // query database
+     connection.execute("INSERT INTO sr_rbq_batch(sn_cdate, sn_mdate, rbq_number, rbq_exp_date, company_name, batch_name) VALUES(?, ?, ?, ?, ?, ?)", [currentDateTime(),currentDateTime(),data.rbq, data.rbq_exp, data.contractor, data.status],
+     
+     function(err, results, fields) {
+        console.log(results); // results contains rows returned by server
+        console.log(fields); // fields contains extra meta data about results, if available
+      }
+    );
 }
 
 
@@ -160,6 +182,9 @@ const checkRbqForLeavingContractor = async (limit) =>{
 }
 
 const notifyUnverifiedRbqToAdmin = async function(rbq, rbq_exp, contractor){
+    // let rawdata = fs.readFileSync('rbq_batch.json');
+    // let rbq_batch = JSON.parse(rawdata);
+
     let email_subject = 'Active subscriver rbq: '+ rbq +' is not verified';
 
     let email_from = 'pros@renoquotes.com';
